@@ -1,0 +1,8 @@
+streamlit
+transformers
+torch
+sacremoses
+sentencepiece
+openai-whisper
+imageio-ffmpeg
+gTTS
