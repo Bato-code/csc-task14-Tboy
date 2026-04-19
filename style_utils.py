@@ -92,15 +92,14 @@ def inject_custom_css():
 
         /* Input / Output Elements */
         .stTextArea textarea {
-            background: rgba(255, 255, 255, 0.9) !important;
-            color: #000000 !important;
-            -webkit-text-fill-color: #000000 !important;
-            border: 1px solid rgba(0, 0, 0, 0.1) !important;
+            background: rgba(0, 0, 0, 0.2) !important;
+            color: var(--text-main) !important;
+            border: 1px solid var(--card-border) !important;
             border-radius: 14px !important;
             padding: 1.25rem !important;
             font-size: 1.05rem !important;
             font-family: 'Space Grotesk', sans-serif !important;
-            transition: all 0.3s ease;
+            transition: border-color 0.3s, box-shadow 0.3s;
         }
 
         .stTextArea textarea:focus {
@@ -111,7 +110,7 @@ def inject_custom_css():
         .stTextArea textarea:disabled {
             background: rgba(255, 255, 255, 0.02) !important;
             border-style: solid !important;
-            color: var(--text-muted) !important;
+            color: #f8fafc !important;
             opacity: 1 !important;
         }
 
@@ -141,55 +140,6 @@ def inject_custom_css():
             color: white;
         }
 
-        /* SWAP BUTTON: High-Visibility White Circle with Black Arrows */
-        /* Using multiple selectors to ensure it beats Streamlit's emotion-cache */
-        div[data-testid="stColumn"]:nth-child(2) button,
-        div[data-testid="stColumn"]:nth-child(2) .stButton > button,
-        div[data-testid="stColumn"]:nth-child(2) [data-testid="stBaseButton-secondary"] {
-            background-color: #FFFFFF !important;
-            background: #FFFFFF !important;
-            color: #000000 !important;
-            border-radius: 50% !important;
-            clip-path: circle(50%) !important;
-            width: 60px !important;
-            height: 60px !important;
-            min-height: 60px !important;
-            padding: 0 !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            margin: 110px auto 0 auto !important;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4) !important;
-            transition: all 0.3s ease !important;
-        }
-
-        /* Ensure the arrow icon inside is black and centered - forcing multiple layers */
-        div[data-testid="stColumn"]:nth-child(2) button p,
-        div[data-testid="stColumn"]:nth-child(2) button div,
-        div[data-testid="stColumn"]:nth-child(2) button span,
-        div[data-testid="stColumn"]:nth-child(2) button i {
-            color: #000000 !important;
-            -webkit-text-fill-color: #000000 !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            font-size: 1.8rem !important;
-            font-weight: 900 !important;
-            line-height: 1 !important;
-            background: transparent !important;
-        }
-
-        div[data-testid="stColumn"]:nth-child(2) button:hover {
-            transform: scale(1.1) rotate(180deg) !important;
-            background-color: #f0f0f0 !important;
-            box-shadow: 0 0 20px var(--primary-glow) !important;
-        }
-
-        /* Support for dark/light context */
-        @media (prefers-color-scheme: dark) {
-            /* If the background is black, we use a white button with black arrows */
-            /* This is already handled by the rules above */
-        }
-
         /* Audio Input styling */
         .stAudioInput {
             border-radius: 100px !important;
@@ -217,29 +167,8 @@ def inject_custom_css():
         
         /* Mobile adjustment */
         @media (max-width: 768px) {
-            .main-title { font-size: 2.2rem; }
-            .sub-title { font-size: 0.9rem; }
-            .student-header { 
-                flex-direction: column; 
-                text-align: center; 
-                gap: 15px; 
-                padding: 1.5rem 1rem;
-            }
-            .student-info { align-items: center; }
-            .student-header > div { text-align: center !important; }
-            
-            .glass-card { padding: 1.25rem; }
-            
-            /* Center and adjust swap button for mobile stack */
-            div[data-testid="stColumn"]:nth-child(2) button {
-                margin: 40px auto !important;
-                width: 65px !important;
-                height: 65px !important;
-            }
-            
-            .stTextArea textarea {
-                height: 180px !important;
-            }
+            .main-title { font-size: 2.5rem; }
+            .student-header { flex-direction: column; text-align: center; gap: 10px; }
         }
         </style>
     """, unsafe_allow_html=True)
