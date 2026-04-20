@@ -48,8 +48,8 @@ class TranslatorEngine:
 
     def load_whisper(self):
         if self.whisper_model is None:
-            # Load tiny whisper model for much faster CPU execution
-            self.whisper_model = whisper.load_model("tiny", device=self.device)
+            # 'base' model is much more accurate than 'tiny' while still fast on CPU
+            self.whisper_model = whisper.load_model("base", device=self.device)
         return self.whisper_model
 
     @st.cache_resource(show_spinner=False)
