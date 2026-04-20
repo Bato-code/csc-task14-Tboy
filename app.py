@@ -1,6 +1,7 @@
 import streamlit as st
 import tempfile
 import os
+import hashlib
 import imageio_ffmpeg
 
 # Add ffmpeg to PATH so Whisper can find it
@@ -9,29 +10,25 @@ os.environ["PATH"] += os.pathsep + os.path.dirname(imageio_ffmpeg.get_ffmpeg_exe
 from translator_engine import translator
 from style_utils import inject_custom_css, render_header
 
-# Set page config
 st.set_page_config(
     page_title="Ai voice translator",
     page_icon="🎙️",
     layout="wide"
 )
 
-# Apply premium styling
 inject_custom_css()
 
 # Initialize session state
-if 'direction' not in st.session_state:
-    st.session_state.direction = "en-fr"
-if 'last_translation' not in st.session_state:
-    st.session_state.last_translation = ""
-if 'text_input' not in st.session_state:
-    st.session_state.text_input = ""
-if 'last_audio_bytes' not in st.session_state:
-    st.session_state.last_audio_bytes = None
-if 'history' not in st.session_state:
-    st.session_state.history = []
-if 'last_translation_audio' not in st.session_state:
-    st.session_state.last_translation_audio = None
+for key, default in [
+    ('direction', 'en-fr'),
+    ('last_translation', ''),
+    ('text_input', ''),
+    ('last_audio_hash', None),
+    ('history', []),
+    ('last_translation_audio', None),
+]:
+    if key not in st.session_state:
+        st.session_state[key] = default
 
 
 def swap_languages():
@@ -42,15 +39,12 @@ def swap_languages():
 
 
 def do_translate(text):
-    """Run translation and audio generation, store results in session state."""
     try:
         translation = translator.translate(text, direction=st.session_state.direction)
         st.session_state.last_translation = translation
-
         target_lang_code = "fr" if st.session_state.direction == "en-fr" else "en"
         audio_fp = translator.generate_audio(translation, lang=target_lang_code)
         st.session_state.last_translation_audio = audio_fp.getvalue() if audio_fp else None
-
         if not st.session_state.history or st.session_state.history[-1]['tar'] != translation:
             st.session_state.history.append({
                 "dir": st.session_state.direction,
@@ -69,25 +63,26 @@ def main():
 
     st.markdown('<div class="glass-card">', unsafe_allow_html=True)
 
-    # --- VOICE INPUT: fully automatic ---
+    # --- VOICE INPUT ---
     st.markdown(f"### 🎙️ Voice Input ({src_label})")
-    audio_value = st.audio_input("Speak", label_visibility="collapsed")
+    audio_value = st.audio_input("Record", label_visibility="collapsed")
 
     if audio_value is not None:
-        audio_bytes = audio_value.getvalue()
-        if st.session_state.last_audio_bytes != audio_bytes:
-            st.session_state.last_audio_bytes = audio_bytes
+        audio_bytes = audio_value.read()
+        audio_hash = hashlib.md5(audio_bytes).hexdigest()
 
-            # Wipe previous results
+        if audio_hash != st.session_state.last_audio_hash:
+            st.session_state.last_audio_hash = audio_hash
             st.session_state.text_input = ""
             st.session_state.last_translation = ""
             st.session_state.last_translation_audio = None
 
+            transcribed = ""
             with st.spinner("Transcribing audio..."):
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
-                    tmp.write(audio_bytes)
-                    tmp_path = tmp.name
                 try:
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
+                        tmp.write(audio_bytes)
+                        tmp_path = tmp.name
                     transcribed = translator.transcribe_audio(tmp_path)
                     if transcribed:
                         st.session_state.text_input = transcribed
@@ -97,17 +92,16 @@ def main():
                     if os.path.exists(tmp_path):
                         os.remove(tmp_path)
 
-            # Auto-translate after transcription
-            if st.session_state.text_input.strip():
+            if transcribed.strip():
                 with st.spinner("Translating..."):
-                    do_translate(st.session_state.text_input)
+                    do_translate(transcribed)
 
             st.rerun()
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # --- LAYOUT ---
-    col1, col_mid, col2 = st.columns([7, 1, 7])
+    # --- TWO COLUMNS: input | swap | output ---
+    col1, col_mid, col2 = st.columns([5, 1, 5])
 
     with col1:
         st.markdown(f"### {src_label}")
@@ -115,24 +109,25 @@ def main():
             label=f"Input {src_label}",
             placeholder=f"Enter {src_label} text here...",
             value=st.session_state.text_input,
-            height=250,
+            height=200,
             label_visibility="collapsed",
             key="text_area_input"
         )
         st.session_state.text_input = input_text
 
     with col_mid:
-        st.markdown("<div style='height: 100px;'></div>", unsafe_allow_html=True)
+        st.markdown("<div class='swap-col'>", unsafe_allow_html=True)
         if st.button("⇄", help="Swap Languages"):
             swap_languages()
             st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
 
     with col2:
         st.markdown(f"### {tar_label}")
         st.text_area(
             label=f"{tar_label} output",
             value=st.session_state.last_translation,
-            height=250,
+            height=200,
             disabled=True,
             label_visibility="collapsed"
         )
@@ -141,10 +136,9 @@ def main():
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # --- TRANSLATE BUTTON (manual, for typed text) ---
+    # --- TRANSLATE BUTTON (for typed text) ---
     if st.button("TRANSLATE NOW", type="primary", use_container_width=True):
         if st.session_state.text_input.strip():
-            # Wipe previous translation before new one
             st.session_state.last_translation = ""
             st.session_state.last_translation_audio = None
             with st.spinner("Translating..."):
@@ -164,7 +158,8 @@ def main():
             src_text = item.get('src', '')[:50]
             tar_text = item.get('tar', '')[:50]
             st.markdown(f"""
-            <div style="background: rgba(255,255,255,0.03); padding: 10px; border-radius: 10px; margin-bottom: 8px; border-left: 4px solid #6366f1;">
+            <div style="background: rgba(255,255,255,0.03); padding: 10px; border-radius: 10px;
+                        margin-bottom: 8px; border-left: 4px solid #6366f1;">
                 <span style="color: #6366f1; font-weight: bold;">{direction_label}:</span>
                 <span style="color: #f8fafc;"> {src_text}...</span>
                 <span style="color: #a855f7;"> → </span>
