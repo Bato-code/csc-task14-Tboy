@@ -6,15 +6,16 @@ import imageio_ffmpeg
 import sys
 import shutil
 
-# Robust FFmpeg path resolution for Windows and other platforms
-try:
-    ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
-    ffmpeg_dir = os.path.dirname(os.path.abspath(ffmpeg_exe))
-    if ffmpeg_dir not in os.environ["PATH"]:
-        os.environ["PATH"] = ffmpeg_dir + os.pathsep + os.environ["PATH"]
-    os.environ["FFMPEG_BINARY"] = ffmpeg_exe
-except Exception as e:
-    print(f"FFmpeg setup warning: {e}")
+# Robust FFmpeg path resolution for Windows and Cloud Hosting (Streamlit Cloud, etc.)
+if not shutil.which("ffmpeg"):
+    try:
+        ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+        ffmpeg_dir = os.path.dirname(os.path.abspath(ffmpeg_exe))
+        if ffmpeg_dir not in os.environ["PATH"]:
+            os.environ["PATH"] = ffmpeg_dir + os.pathsep + os.environ["PATH"]
+        os.environ["FFMPEG_BINARY"] = ffmpeg_exe
+    except Exception as e:
+        print(f"FFmpeg setup warning: {e}")
 
 from translator_engine import translator
 from style_utils import inject_custom_css, render_header
